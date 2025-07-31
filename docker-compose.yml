@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  watchtower:
+    image: containrrr/watchtower
+    restart: always
+    command:
+      - "--label-enable"
+      - "--interval"
+      - "30"
+      - "--rolling-restart"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  postgres:
+    container_name: postgres
+    image: ankane/pgvector
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: tb_detector_app_db
+    ports:
+      - "5532:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - app-network
+
+  backend:
+    container_name: backend
+    image: krystalpalesa/backend:latest
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/tb_detector_app_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: password
+      SPRING_AI_OPENAI_API_KEY: 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
+    ports:
+      - "5000:8080"
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    depends_on:
+      - postgres
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail http://localhost:8080/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
