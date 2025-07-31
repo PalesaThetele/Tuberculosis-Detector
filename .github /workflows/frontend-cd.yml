@@ -1,0 +1,37 @@
+name: 🚀 CD - Deploy Frontend
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - frontend/**
+
+jobs:
+  deploy:
+    name: ☁️ Build and Deploy Frontend
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./frontend
+    steps:
+      - name: 🚨 Checkout
+        uses: actions/checkout@v4
+      - name: 🏷️ Set build number
+        id: build-number
+        run: echo "BUILD_NUMBER=$(date '+%d.%m.%Y.%H.%M.%S')" >> $GITHUB_OUTPUT
+      - name: 🐳 Docker Hub Login
+        uses: docker/login-action@v3
+        with:
+          username: krystalpalesa
+          password: dckr_pat_69JSAgx2yXKC_rRTRHzw8tDyTE4
+      - name: Docker Build and push
+        run: |
+          chmod +x ../.ci/build-publish.sh
+          USERNAME=krystalpalesa \
+          REPO=frontend \
+          TAG=${{ steps.build-number.outputs.BUILD_NUMBER }} \
+          ../.ci/build-publish.sh . \
+          --build-arg api_base_url=http://192.168.137.1:5000
